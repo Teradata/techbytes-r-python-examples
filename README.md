@@ -39,7 +39,7 @@ The present package comprises of the following folders and files. See the README
     + Customer.csv
     + Customer.fastload
     + README-R_Py_TechBytes-Demo_Data.txt
-    + Transactions.csv
+    + Transactions.csv.zip
     + Transactions.fastload
 * R_Py-Part_0/
     + README-R_Py_TechBytes-Part_0.txt
