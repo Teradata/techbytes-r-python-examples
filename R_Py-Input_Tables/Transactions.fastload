@@ -1,0 +1,84 @@
+/* Fastload script for the "Transactions" test data set. For use              */
+/* with the "Using R and Python with Teradata Vantage" TechBytes series.      */
+/* Copyright (c) 2019 by Teradata                                             */
+/* Licensed under BSD; see "license.txt" file in the bundle root folder.      */
+/*                                                                            */
+/* Usage Instructions:                                                        */
+/* The present script should be used in conjunction with the "Transactions"   */
+/* test dataset. You can use the script to upload the dataset to a target     */
+/* Vantage system NewSQL Engine database.                                     */
+/* 1. Uncomment the "logon..." script line after the present comments block.  */
+/*    Replace the fields <IPADDRESS>, <UID>, and <PWD> with a target Vantage  */
+/*    system IP address, your database user ID and password, respectively.    */
+/* 2. Replace all occurrences of the field <DB> in the present file with the  */
+/*    target database you want the data installed on.                         */
+/* 3. Save and close the present file.                                        */
+/* 4. Place the present file and the dataset file in the same folder of a     */
+/*    system that carries the fastload utility. Then upload the data by       */
+/*    executing on your command prompt the following:                         */
+/*    fastload < Transactions.fastload                                        */
+/* Note: If the "Transactions" table exists already in your target database,  */
+/*       then uncomment first the "DROP TABLE..." script line in the following*/
+/*                                                                            */
+sessions 4;
+errlimit 25;
+/* logon <IPADDRESS>/<UID>,<PWD>; */  /* Specify target machine, credentials. */
+DATABASE <DB>;                        /* Specify target database.             */
+
+/* DROP TABLE Transactions; */        /* Uncomment, if table already exists.  */
+
+CREATE SET TABLE <DB>.Transactions, FALLBACK,     /* Specify target database. */
+     NO BEFORE JOURNAL,
+     NO AFTER JOURNAL,
+     CHECKSUM = DEFAULT,
+     DEFAULT MERGEBLOCKRATIO
+     (
+      tran_id INTEGER,
+      acct_nbr VARCHAR(18) CHARACTER SET LATIN NOT CASESPECIFIC,
+      tran_amt DECIMAL(9,2),
+      principal_amt DECIMAL(15,2),
+      interest_amt DECIMAL(11,3),
+      new_balance DECIMAL(9,2),
+      tran_date DATE FORMAT 'YY/MM/DD',
+      tran_time INTEGER,
+      channel VARCHAR(1) CHARACTER SET LATIN NOT CASESPECIFIC,
+      tran_code VARCHAR(2) CHARACTER SET LATIN NOT CASESPECIFIC)
+UNIQUE PRIMARY INDEX ( tran_id ,acct_nbr );
+
+SET RECORD VARTEXT ",";
+
+/* Scrpit starts reading at 2nd row of data file to account for column titles */
+RECORD 2;
+
+DEFINE
+Col1 (VARCHAR(10)),
+Col2 (VARCHAR(20)),
+Col3 (VARCHAR(10)),
+Col4 (VARCHAR(20)),
+Col5 (VARCHAR(15)),
+Col6 (VARCHAR(10)),
+Col7 (VARCHAR(15)),
+Col8 (VARCHAR(10)),
+Col9 (VARCHAR(5)),
+Col10 (VARCHAR(5))
+FILE=Transactions.csv;
+
+SHOW;
+
+/* Specify target database where needed in the next couple of lines.          */
+begin loading <DB>.Transactions errorfiles <DB>.Transactions_error_1, <DB>.Transactions_error_2;
+insert into <DB>.Transactions (
+:Col1,
+:Col2,
+:Col3,
+:Col4,
+:Col5,
+:Col6,
+:Col7,
+:Col8,
+:Col9,
+:Col10);
+
+END LOADING;
+
+LOGOFF;

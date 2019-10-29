@@ -1,0 +1,81 @@
+/* Fastload script for the "Customer" test data set. For use                  */
+/* with the "Using R and Python with Teradata Vantage" TechBytes series.      */
+/* Copyright (c) 2019 by Teradata                                             */
+/* Licensed under BSD; see "license.txt" file in the bundle root folder.      */
+/*                                                                            */
+/* Usage Instructions:                                                        */
+/* The present script should be used in conjunction with the "Customer" test  */
+/* dataset. You can use the script to upload the dataset to a target Vantage  */
+/* system NewSQL Engine database.                                             */
+/* 1. Uncomment the "logon..." script line after the present comments block.  */
+/*    Replace the fields <IPADDRESS>, <UID>, and <PWD> with a target Vantage  */
+/*    system IP address, your database user ID and password, respectively.    */
+/* 2. Replace all occurrences of the field <DB> in the present file with the  */
+/*    target database you want the data installed on.                         */
+/* 3. Save and close the present file.                                        */
+/* 4. Place the present file and the dataset file in the same folder of a     */
+/*    system that carries the fastload utility. Then upload the data by       */
+/*    executing on your command prompt the following:                         */
+/*    fastload < Customer.fastload                                            */
+/* Note: If the "Customer" table exists already in your target database, then */
+/*       uncomment first the "DROP TABLE..." script line in the following.    */
+/*                                                                            */
+sessions 4;
+errlimit 25;
+/* logon <IPADDRESS>/<UID>,<PWD>; */  /* Specify target machine, credentials. */
+DATABASE <DB>;                        /* Specify target database.             */
+
+/* DROP TABLE Customer; */            /* Uncomment, if table already exists.  */
+
+CREATE SET TABLE <DB>.Customer, FALLBACK,         /* Specify target database. */
+     NO BEFORE JOURNAL,
+     NO AFTER JOURNAL,
+     CHECKSUM = DEFAULT,
+     DEFAULT MERGEBLOCKRATIO
+     (
+      cust_id INTEGER,
+      income DECIMAL(15,1),
+      age INTEGER,
+      years_with_bank INTEGER,
+      nbr_children INTEGER,
+      gender VARCHAR(1) CHARACTER SET LATIN NOT CASESPECIFIC,
+      marital_status VARCHAR(1) CHARACTER SET LATIN NOT CASESPECIFIC,
+      postal_code VARCHAR(5) CHARACTER SET LATIN NOT CASESPECIFIC,
+      state_code VARCHAR(2) CHARACTER SET LATIN NOT CASESPECIFIC)
+UNIQUE PRIMARY INDEX ( cust_id );
+
+SET RECORD VARTEXT ",";
+
+/* Scrpit starts reading at 2nd row of data file to account for column titles */
+RECORD 2;
+
+DEFINE
+Col1 (VARCHAR(10)),
+Col2 (VARCHAR(20)),
+Col3 (VARCHAR(5)),
+Col4 (VARCHAR(5)),
+Col5 (VARCHAR(5)),
+Col6 (VARCHAR(5)),
+Col7 (VARCHAR(5)),
+Col8 (VARCHAR(10)),
+Col9 (VARCHAR(5))
+FILE=Customer.csv;
+
+SHOW;
+
+/* Specify target database where needed in the next couple of lines.          */
+begin loading <DB>.Customer errorfiles <DB>.Customer_error_1, <DB>.Customer_error_2;
+insert into <DB>.Customer (
+:Col1,
+:Col2,
+:Col3,
+:Col4,
+:Col5,
+:Col6,
+:Col7,
+:Col8,
+:Col9);
+
+END LOADING;
+
+LOGOFF;
