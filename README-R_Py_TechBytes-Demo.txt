@@ -1,5 +1,5 @@
 The R and Python TechBytes Demo
-Release 0.5
+Version 1.0
 --------------------------------------------------------------------------------
 README-R_Py_TechBytes-Demo:
 README file for R_Py_TechBytes-Demo ZIP bundle

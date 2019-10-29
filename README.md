@@ -1,6 +1,6 @@
 ## TechBytes: Using R and Python with Vantage
 
-This package contains the R and Python code for the 5-part demo of the TechBytes series "Using R and Python with Vantage".
+This bundle contains v.1.0 of the R and Python code for the 5-part demo of the TechBytes series "Using R and Python with Vantage".
 
 ### The TechBytes series "Using R and Python with Vantage"
 
