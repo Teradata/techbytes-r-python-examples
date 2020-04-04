@@ -1,9 +1,9 @@
 The R and Python TechBytes Demo
-Version 1.0
+Version 1.1
 --------------------------------------------------------------------------------
 README-R_Py_TechBytes-Demo:
 README file for R_Py_TechBytes-Demo ZIP bundle
-Copyright (c) 2019 by Teradata
+Copyright (c) 2020 by Teradata
 Licensed under BSD; see "license.txt" file in the bundle root folder.
 ================================================================================
 
@@ -94,3 +94,11 @@ R_Py-Part_5/
     stoRFFitMM.py
     stoRFScore.py
     stoRFScoreMM.py
+
+
+3. Changelogs
+--------------------------------------------------------------------------------
+
+For change logs across file versions, please look into the corresponding files.
+If unmodified, a file may have no changelog but still follow the versioning of
+the rest of the files in the repository.

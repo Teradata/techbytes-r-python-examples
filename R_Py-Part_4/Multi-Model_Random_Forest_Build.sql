@@ -1,8 +1,8 @@
 --------------------------------------------------------------------------------
 -- The contents of this file are Teradata Public Content and have been released
 -- to the Public Domain.
--- Tim Miller & Alexander Kolovos - October 2019 - v.1.0
--- Copyright (c) 2019 by Teradata
+-- Tim Miller & Alexander Kolovos - April 2020 - v.1.1
+-- Copyright (c) 2020 by Teradata
 -- Licensed under BSD; see "license.txt" file in the bundle root folder.
 --
 --------------------------------------------------------------------------------
@@ -39,6 +39,10 @@
 -- will fail if the RFStateCodeModels table already exists. To prevent this,
 -- the query is preceded by a "DROP TABLE" statement. The initial "DROP TABLE"
 -- statement is expected to fail when the RFStateCodeModels table is absent.
+--------------------------------------------------------------------------------
+-- File Changelog
+--  v.1.0     2019-10-29     First release
+--  v.1.1     2020-04-02     Added change log; no code changes in present file
 --------------------------------------------------------------------------------
 
 DROP TABLE RFStateCodeModels;

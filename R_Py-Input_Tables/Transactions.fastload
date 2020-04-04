@@ -1,7 +1,11 @@
+/* The contents of this file are Teradata Public Content and have been        */
+/* released to the public domain.                                             */
+/* Tim Miller & Alexander Kolovos - April 2020 - v.1.1                        */
+/* Copyright (c) 2020 by Teradata                                             */
+/* Licensed under BSD; see "license.txt" file in the bundle root folder.      */
+/*                                                                            */
 /* Fastload script for the "Transactions" test data set. For use              */
 /* with the "Using R and Python with Teradata Vantage" TechBytes series.      */
-/* Copyright (c) 2019 by Teradata                                             */
-/* Licensed under BSD; see "license.txt" file in the bundle root folder.      */
 /*                                                                            */
 /* Usage Instructions:                                                        */
 /* The present script should be used in conjunction with the "Transactions"   */

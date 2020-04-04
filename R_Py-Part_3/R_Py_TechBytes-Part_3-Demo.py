@@ -1,11 +1,11 @@
-# ##############################################################################
-# * The contents of this file are Teradata Public Content and have been released
-# * to the Public Domain.
-# * Tim Miller & Alexander Kolovos & Pankaj Vinod Purandare - Oct. 2019 - v.1.0
-# * Copyright (c) 2019 by Teradata
-# * Licensed under BSD; see "license.txt" file in the bundle root folder.
+################################################################################
+# The contents of this file are Teradata Public Content and have been released
+# to the Public Domain.
+# Tim Miller & Alexander Kolovos & Pankaj Vinod Purandare - Apr. 2020 - v.1.1
+# Copyright (c) 2020 by Teradata
+# Licensed under BSD; see "license.txt" file in the bundle root folder.
 #
-# ##############################################################################
+################################################################################
 # R and Python TechBytes Demo - Part 3: teradataml
 # ------------------------------------------------------------------------------
 # File: R_Py_TechBytes-Part_3-Demo.py
@@ -16,7 +16,7 @@
 # Part 3 demonstrates the Teradata Python package teradataml for clients
 # Part 4 demonstrates using R in-nodes with the SCRIPT and ExecR Table Operators
 # Part 5 demonstrates using Python in-nodes with the SCRIPT Table Operator
-# ##############################################################################
+################################################################################
 #
 # This TechBytes demo utilizes a use case to predict the propensity of a
 # financial services customer base to open a credit card account.
@@ -56,19 +56,25 @@
 # - Save the models so that they can be scored again in the future.
 #
 # Note: Code executed successfully on Python v.3.6.8, and by using teradataml
-#       v.16.20.00.03 to connect to a Vantage system that runs Advanced SQL
+#       v.16.20.00.05 to connect to a Vantage system that runs Advanced SQL
 #       Engine database v.16.20.34.01.
-# ##############################################################################
+################################################################################
+# File Changelog
+#  v.1.0     2019-10-29     First release
+#  v.1.1     2020-04-02     Code simplified with case, sample teradataml funcs.
+#                           Additional information about connections.
+################################################################################
 
 # Load teradataml and dependency packages
 from teradataml import create_context, DataFrame, get_context, copy_to_sql, in_schema
+from teradataml.dataframe.sql_functions import case
 from teradataml import XGBoost, XGBoostPredict, DecisionForest, DecisionForestEvaluator, DecisionForestPredict, ConfusionMatrix
 from sqlalchemy.sql.expression import select, or_, extract, text, join, case as case_when
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 
-# Define a couple of functions that are used later in the demo code.
+# Define a function that is used later in the demo code.
 def draw_box_plot(data, plotColumnName, xTicksColumnName, xLabel = None, yLabel = None, title = None):
     """
     DESCRIPTION:
@@ -110,27 +116,6 @@ def draw_box_plot(data, plotColumnName, xTicksColumnName, xLabel = None, yLabel 
     plt.show()
 
 
-def processColumnToReplaceNullWithZero(column_expr, column_label):
-    """
-    DESCRIPTION:
-        Function process SQLAlchemy column expression to replace NULL values with zeros,
-        else keep the value as is.
-
-    PARAMETERS:
-        column_expr:
-            Required Argument.
-            SQLAlchemy column expression.
-
-        column_label:
-            Required Argument.
-            New name of the processed column.
-
-    RETURNS:
-         SQLAlchemy Case object.
-    """
-    return case_when([(column_expr == None, 0)], else_=column_expr).expression.label(column_label)
-
-
 ###
 ### Connection
 ###
@@ -140,6 +125,21 @@ def processColumnToReplaceNullWithZero(column_expr, column_label):
 # <HOSTNAME>, <UID> and <PWD> with your target Vantage system hostname (or
 # IP address), and your database user ID and password, respectively.
 td_context = create_context(host="<HOSTNAME>", username="<UID>", password="<PWD>")
+
+# Notes and alternatives:
+# 1. In any connection function, you can specify for an argument the getpass()
+#    function of the Python standard library. First, you will need to execute:
+#    import getpass
+#    getpass() enables you to type your password secretly during runtime
+#    without having to hard-code it in the script.
+# Example: Specifying the argument password = getpass.getpass("Password: ") will
+#          produce a prompt string "Password: " that expects you to type in
+#          a password to proceed.
+# 2. Specifying the optional argument logmech enables you to specify particular
+#    logging mechanisms that may apply on your target server. For example, you
+#    can connect via an active directory with LDAP credentials by specifying
+#    the argument: logmech = "LDAP" as follows:
+# td_context = create_context(host="<HOSTNAME>", username="<UID>", password="PWD", logmech="LDAP")
 
 
 ################################################################################
@@ -223,297 +223,117 @@ plt.show()
 ### Data Pre-Processing
 ###
 
-# First, grab the customer demographic variables and create indicator variables
-# for gender, marital_status and state_code (we consider a classification into
-# the top 6 states and the jointly the rest). To do so, initially we assemble
-# the list of columns to be projected in SQL. This list is constructed using
-# the SQLAlchemy objects 'Column' and 'Case'.
-# Note: The case_when() function is from SQLAlchemy. There exists a backlog
-#       story to implement this function in a future version of teradataml
-#       after October 2019.
-cust_select_query_column_projection = [tdCustomer.cust_id.expression,
-                                       tdCustomer.income.expression,
-                                       tdCustomer.age.expression,
-                                       tdCustomer.gender.expression,
-                                       tdCustomer.years_with_bank.expression,
-                                       tdCustomer.nbr_children.expression,
-                                       tdCustomer.marital_status.expression,
-                                       tdCustomer.state_code.expression,
-                                       case_when([(tdCustomer.gender.expression == "F", 1)], else_=0).expression.label("female"),
-                                       case_when([(tdCustomer.marital_status.expression == "1", 1)], else_=0).expression.label("single"),
-                                       case_when([(tdCustomer.marital_status.expression == "2", 1)], else_=0).expression.label("married"),
-                                       case_when([(tdCustomer.marital_status.expression == "3", 1)], else_=0).expression.label("separated"),
-                                       case_when([(tdCustomer.state_code.expression == "CA", 1)], else_=0).expression.label("ca_resident"),
-                                       case_when([(tdCustomer.state_code.expression == "NY", 1)], else_=0).expression.label("ny_resident"),
-                                       case_when([(tdCustomer.state_code.expression == "TX", 1)], else_=0).expression.label("tx_resident"),
-                                       case_when([(tdCustomer.state_code.expression == "IL", 1)], else_=0).expression.label("il_resident"),
-                                       case_when([(tdCustomer.state_code.expression == "AZ", 1)], else_=0).expression.label("az_resident"),
-                                       case_when([(tdCustomer.state_code.expression == "OH", 1)], else_=0).expression.label("oh_resident")
-                                       ]
-# The above is the column projection list that contains SQLAlchmey expressions.
-# The following statement constructs the SQL from the list, and uses it to
-# create a DataFrame
-cust = DataFrame.from_query(str(select(cust_select_query_column_projection).compile(compile_kwargs={"literal_binds": True})))
+# First, grab customer demographic variables. Use imported case() function to
+# create indicator variables for gender, marital_status and the state_code
+# (we consider a classification into the top 6 states and the jointly the rest).
+cust = tdCustomer.assign(female = case([(tdCustomer.gender == "F", 1)], else_ = 0 ),
+                         single    = case( [(tdCustomer.marital_status == 1, 1)], else_ = 0 ),
+                         married   = case( [(tdCustomer.marital_status == 2, 1)], else_ = 0 ),
+                         separated = case( [(tdCustomer.marital_status == 3, 1)], else_ = 0 ),
+                         ca_resident = case( [(tdCustomer.state_code == "CA", 1)], else_ = 0 ),
+                         ny_resident = case( [(tdCustomer.state_code == "NY", 1)], else_ = 0 ),
+                         tx_resident = case( [(tdCustomer.state_code == "TX", 1)], else_ = 0 ),
+                         il_resident = case( [(tdCustomer.state_code == "IL", 1)], else_ = 0 ),
+                         az_resident = case( [(tdCustomer.state_code == "AZ", 1)], else_ = 0 ),
+                         oh_resident = case( [(tdCustomer.state_code == "OH", 1)], else_ = 0 )
+                        )
 cust.to_pandas().head(10)
 
 # Next: Get the account information required for the aggregation, and create
-# the indicator variables for acct_type
+# the indicator variables for acct_type.
 acct_balance = tdAccounts.starting_balance + tdAccounts.ending_balance
-acct_select_query_column_projection = [tdAccounts.cust_id.expression,
-                                       tdAccounts.acct_type.expression,
-                                       tdAccounts.starting_balance.expression,
-                                       tdAccounts.ending_balance.expression,
-                                       tdAccounts.acct_nbr.expression,
-                                       case_when(
-                                           [
-                                               (
-                                                   tdAccounts.acct_type.expression == "CK", 1
-                                               )
-                                           ], else_=0).expression.label("ck_acct"),
-                                       case_when(
-                                           [
-                                               (
-                                                   tdAccounts.acct_type.expression == "SV", 1
-                                               )
-                                           ], else_=0).expression.label("sv_acct"),
-                                       case_when(
-                                           [
-                                               (
-                                                   tdAccounts.acct_type.expression == "CC", 1
-                                               )
-                                           ], else_=0).expression.label("cc_acct"),
-                                       case_when(
-                                           [
-                                               (
-                                                   tdAccounts.acct_type.expression == "CK", acct_balance.expression
-                                               )
-                                           ], else_=0).expression.label("ck_bal"),
-                                       case_when(
-                                           [
-                                               (
-                                                   tdAccounts.acct_type.expression == "SV", acct_balance.expression
-                                               )
-                                           ], else_=0).expression.label("sv_bal"),
-                                       case_when(
-                                           [
-                                               (
-                                                   tdAccounts.acct_type.expression == "CC", acct_balance.expression
-                                               )
-                                           ], else_=0).expression.label("cc_bal")
-                                       ]
-acct = DataFrame.from_query(str(select(acct_select_query_column_projection).compile(compile_kwargs={"literal_binds": True})))
+acct = tdAccounts.assign(ck_acct = case( [(tdAccounts.acct_type == "CK", 1)], else_ = 0 ),
+                         sv_acct = case( [(tdAccounts.acct_type == "SV", 1)], else_ = 0 ),
+                         cc_acct = case( [(tdAccounts.acct_type == "CC", 1)], else_ = 0 ),
+                         ck_bal = case( [(tdAccounts.acct_type == "CK", acct_balance.expression)], else_ = 0 ),
+                         sv_bal = case( [(tdAccounts.acct_type == "SV", acct_balance.expression)], else_ = 0 ),
+                         cc_bal = case( [(tdAccounts.acct_type == "CC", acct_balance.expression)], else_ = 0 )
+                        )
 acct.to_pandas().head(10)
 
 # Next: Get the transaction information required for the aggregation. Pull out
 # the quarter the transaction was made.
-trans_select_query_column_projection = [tdTransactions.acct_nbr.expression,
-                                        tdTransactions.principal_amt.expression,
-                                        tdTransactions.interest_amt.expression,
-                                        tdTransactions.tran_id.expression,
-                                        tdTransactions.tran_date.expression,
-                                        extract('month', tdTransactions.tran_date.expression).expression.label("acct_mon"),
-                                        case_when(
-                                            [
-                                                (
-                                                    or_(
-                                                        text("acct_mon = '1'"), text("acct_mon = '2'"), text("acct_mon = '3'"),
-                                                    ), 1
-                                                )
-                                            ], else_=0).expression.label("q1_trans"),
-                                        case_when(
-                                            [
-                                                (
-                                                    or_(
-                                                        text("acct_mon = '4'"), text("acct_mon = '5'"), text("acct_mon = '6'"),
-                                                    ), 1
-                                                )
-                                            ], else_=0).expression.label("q2_trans"),
-                                        case_when(
-                                            [
-                                                (
-                                                    or_(
-                                                        text("acct_mon = '7'"), text("acct_mon = '8'"), text("acct_mon = '9'"),
-                                                    ), 1
-                                                )
-                                            ], else_=0).expression.label("q3_trans"),
-                                        case_when(
-                                            [
-                                                (
-                                                    or_(
-                                                        text("acct_mon = '10'"), text("acct_mon = '11'"), text("acct_mon = '12'"),
-                                                    ), 1
-                                                )
-                                            ], else_=0).expression.label("q4_trans")
-                                        ]
-# Note: In the above case expressions with 'case_when', observe that SQL text
-#       is used directly to construct the When conditions. This is exactly as
-#       done in earlier 'case_when' statements, where ColumnExpressions was
-#       used from teradata DataFrame. This approach cannot be used here. For
-#       example, consider the following approach:
-#                                        case_when(
-#                                            [
-#                                                (
-#                                                    or_(
-#                                                        tdTransactions.acct_mon.expression == "1",
-#                                                        tdTransactions.acct_mon.expression == "2",
-#                                                        tdTransactions.acct_mon.expression == "3"
-#                                                    ), 1
-#                                                )
-#                                            ], else_=0).expression.label("q1_trans"),
-#                                        case_when(
-#                                            [
-#                                                (
-#                                                    or_(
-#                                                        tdTransactions.acct_mon.expression == "4",
-#                                                        tdTransactions.acct_mon.expression == "5",
-#                                                        tdTransactions.acct_mon.expression == "6"
-#                                                    ), 1
-#                                                )
-#                                            ], else_=0).expression.label("q2_trans"),
-#                                        case_when(
-#                                            [
-#                                                (
-#                                                    or_(
-#                                                        tdTransactions.acct_mon.expression == "7",
-#                                                        tdTransactions.acct_mon.expression == "8",
-#                                                        tdTransactions.acct_mon.expression == "9"
-#                                                    ), 1
-#                                                )
-#                                            ], else_=0).expression.label("q3_trans"),
-#                                        case_when(
-#                                            [
-#                                                (
-#                                                    or_(
-#                                                        tdTransactions.acct_mon.expression == "10",
-#                                                        tdTransactions.acct_mon.expression == "11",
-#                                                        tdTransactions.acct_mon.expression == "12"
-#                                                    ), 1
-#                                                )
-#                                            ], else_=0).expression.label("q4_trans")
-#                                        ]
-#       If we use code like the above, then 'tdTransactions.acct_mon' will
-#       raise an excpetion mentioning column 'acct_mon' as not found. Basically,
-#       'acct_mon' column does not exist in 'tdTransactions'. We are creating it
-#       as part of select projection, when we call:
-#       "extract('month', tdTransactions.tran_date.expression).expression.label("acct_mon"),"
-#       In SQL, tha same approach can be used for projection manipulation, but
-#       in teradataml this cannot be used. For this reason, SQL is utilized
-#       directly to construct the select projection list for the query.
-trans = DataFrame.from_query(str(select(trans_select_query_column_projection).compile(compile_kwargs={"literal_binds": True})))
+acct_mon = extract('month', tdTransactions.tran_date.expression).expression
+trans = tdTransactions.assign(q1_trans = case( [(acct_mon ==  "1", 1), (acct_mon ==  "2", 1), (acct_mon ==  "3", 1)], else_ = 0 ),
+                              q2_trans = case( [(acct_mon ==  "4", 1), (acct_mon ==  "5", 1), (acct_mon ==  "6", 1)], else_ = 0 ),
+                              q3_trans = case( [(acct_mon ==  "7", 1), (acct_mon ==  "8", 1), (acct_mon ==  "9", 1)], else_ = 0 ),
+                              q4_trans = case( [(acct_mon == "10", 1), (acct_mon == "11", 1), (acct_mon == "12", 1)], else_ = 0 ),
+                             )
 trans.to_pandas().head(10)
 
 ### Finally, pull everything together into an analytic data set
 
 # Initially, we wish to left join the acct and trans on 'acct_nbr' into an
 # acct_trans DataFrame.
-#
-# We construct the list of all column expressions to be projected. In this
-# process, we create new columns with the transaction amounts as follows:
+acct_trans_cols = ['cust_id', 'acct_type', 'starting_balance', 'ending_balance',
+                   'acct_acct_nbr', 'principal_amt', 'interest_amt', 'tran_id',
+                   'tran_date', 'q1_trans', 'q2_trans', 'q3_trans', 'q4_trans',
+                   'cc_acct', 'cc_bal', 'ck_acct', 'ck_bal', 'sv_acct', 'sv_bal']
+
+acct_trans_tmp = acct.join(other = trans,
+                           on = [acct.acct_nbr == trans.acct_nbr],
+                           how = "left", lsuffix = "acct", rsuffix = "trans").select(acct_trans_cols)
+
+# We create the target acct_trans DataFrame by also adding new columns with the
+# transaction amounts for each type of account, according to the following.
 acct_trans_amt = trans.principal_amt + trans.interest_amt
-acct_trans_join_select_query_column_projection = [acct.cust_id.expression,
-                                                  acct.acct_type.expression,
-                                                  acct.starting_balance.expression,
-                                                  acct.ending_balance.expression,
-                                                  acct.acct_nbr.expression,
-                                                  trans.principal_amt.expression,
-                                                  trans.interest_amt.expression,
-                                                  trans.tran_id.expression,
-                                                  trans.tran_date.expression,
-                                                  trans.acct_mon.expression,
-                                                  trans.q1_trans.expression,
-                                                  trans.q2_trans.expression,
-                                                  trans.q3_trans.expression,
-                                                  trans.q4_trans.expression,
-                                                  acct.ck_acct.expression,
-                                                  acct.sv_acct.expression,
-                                                  acct.cc_acct.expression,
-                                                  acct.ck_bal.expression,
-                                                  acct.sv_bal.expression,
-                                                  acct.cc_bal.expression,
-                                                  case_when(
-                                                      [
-                                                          (
-                                                              acct.acct_type.expression == 'CK', acct_trans_amt.expression
-                                                          )
-                                                      ], else_=0).expression.label("ck_tran_amt"),
-                                                  case_when(
-                                                      [
-                                                          (
-                                                              acct.acct_type.expression == 'SV', acct_trans_amt.expression
-                                                          )
-                                                      ], else_=0).expression.label("sv_tran_amt"),
-                                                  case_when(
-                                                      [
-                                                          (
-                                                              acct.acct_type.expression == 'CC', acct_trans_amt.expression
-                                                          )
-                                                      ], else_=0).expression.label("cc_tran_amt")
-                                                  ]
 
-# Construct SQL left outer join from clause statement using the SQLAlchemy
-# join() function.
-join_tbl_sqlalcmy = join(acct.acct_nbr.table, trans.acct_nbr.table, acct.acct_nbr.expression == trans.acct_nbr.expression, isouter=True)
-
-# Let us construct the SQL from the same and use it to create a DataFrame.
-acct_trans = DataFrame.from_query(str(select(acct_trans_join_select_query_column_projection).select_from(join_tbl_sqlalcmy).compile(compile_kwargs={"literal_binds": True})))
+acct_trans = acct_trans_tmp.assign(
+                 ck_tran_amt = case( [(acct_trans_tmp.acct_type == "CK", acct_trans_amt.expression)], else_ = 0 ),
+                 sv_tran_amt = case( [(acct_trans_tmp.acct_type == "SV", acct_trans_amt.expression)], else_ = 0 ),
+                 cc_tran_amt = case( [(acct_trans_tmp.acct_type == "CC", acct_trans_amt.expression)], else_ = 0 )
+                                  )
 acct_trans.to_pandas().head(10)
 
 # Then, perform a left outer join of acct_trans with cust on 'cust_id'.
-#
-# Now, we can use teradataml join API to join the two DataFrames, but we also
-# want to process few columns in a way that, if the column contains NULL, then
-# replace it with zero. To do so, we need a CASE object; for this reason, we
-# choose to use SQLAlchemy-style column selection and join operation. In the
-# following, we are using our DataFrame objects to pass ColumnExpression's
-# expression, which is SQLAlchmey Column object.
-ADS_Py_join_select_query_column_projection = [cust.cust_id.expression,
-                                              cust.income.expression,
-                                              cust.age.expression,
-                                              cust.gender.expression,
-                                              cust.years_with_bank.expression,
-                                              cust.nbr_children.expression,
-                                              cust.marital_status.expression,
-                                              cust.state_code.expression,
-                                              cust.female.expression,
-                                              cust.single.expression,
-                                              cust.married.expression,
-                                              cust.separated.expression,
-                                              cust.ca_resident.expression,
-                                              cust.ny_resident.expression,
-                                              cust.tx_resident.expression,
-                                              cust.il_resident.expression,
-                                              cust.az_resident.expression,
-                                              cust.oh_resident.expression,
-                                              acct_trans.acct_type.expression,
-                                              acct_trans.starting_balance.expression,
-                                              acct_trans.ending_balance.expression,
-                                              acct_trans.acct_nbr.expression,
-                                              acct_trans.principal_amt.expression,
-                                              acct_trans.interest_amt.expression,
-                                              acct_trans.tran_id.expression,
-                                              acct_trans.tran_date.expression,
-                                              acct_trans.acct_mon.expression,
-                                              processColumnToReplaceNullWithZero(acct_trans.q1_trans.expression, "q1_trans"),
-                                              processColumnToReplaceNullWithZero(acct_trans.q2_trans.expression, "q2_trans"),
-                                              processColumnToReplaceNullWithZero(acct_trans.q3_trans.expression, "q3_trans"),
-                                              processColumnToReplaceNullWithZero(acct_trans.q4_trans.expression, "q4_trans"),
-                                              processColumnToReplaceNullWithZero(acct_trans.ck_acct.expression, "ck_acct"),
-                                              processColumnToReplaceNullWithZero(acct_trans.sv_acct.expression, "sv_acct"),
-                                              processColumnToReplaceNullWithZero(acct_trans.cc_acct.expression, "cc_acct"),
-                                              processColumnToReplaceNullWithZero(acct_trans.ck_bal.expression, "ck_bal"),
-                                              processColumnToReplaceNullWithZero(acct_trans.sv_bal.expression, "sv_bal"),
-                                              processColumnToReplaceNullWithZero(acct_trans.cc_bal.expression, "cc_bal"),
-                                              processColumnToReplaceNullWithZero(acct_trans.ck_tran_amt.expression, "ck_tran_amt"),
-                                              processColumnToReplaceNullWithZero(acct_trans.sv_tran_amt.expression, "sv_tran_amt"),
-                                              processColumnToReplaceNullWithZero(acct_trans.cc_tran_amt.expression, "cc_tran_amt")
-                                             ]
+# This time, obtain the resulting table by dropping all the temporary table
+# columns and assigning from scratch the ones we want. For select columns,
+# use the case() function to replace any None occurrences with zeros.
+ADS_Py_join_tmp = cust.join(other = acct_trans,
+                            on = [cust.cust_id == acct_trans.cust_id],
+                            how = "left", lsuffix = "cust", rsuffix = "actr")
 
-# Construct SQL left outer join from clause statement by using the SQLAlchemy
-# join() function.
-join_cust_acct_trans_tbl_sqlalcmy = join(cust.cust_id.table, acct_trans.cust_id.table, cust.cust_id.expression == acct_trans.cust_id.expression, isouter=True)
-
-# Let us construct the SQL from the same and use it to create a DataFrame.
-ADS_Py_join = DataFrame.from_query(str(select(ADS_Py_join_select_query_column_projection).select_from(join_cust_acct_trans_tbl_sqlalcmy).compile(compile_kwargs={"literal_binds": True})))
+ADS_Py_join = ADS_Py_join_tmp.assign(drop_columns = True,
+                  cust_id = ADS_Py_join_tmp.cust_cust_id,
+                  income = ADS_Py_join_tmp.income,
+                  age = ADS_Py_join_tmp.age,
+                  gender = ADS_Py_join_tmp.gender,
+                  years_with_bank = ADS_Py_join_tmp.years_with_bank,
+                  nbr_children = ADS_Py_join_tmp.nbr_children,
+                  marital_status = ADS_Py_join_tmp.marital_status,
+                  state_code = ADS_Py_join_tmp.state_code,
+                  female = ADS_Py_join_tmp.female,
+                  single = ADS_Py_join_tmp.single,
+                  married = ADS_Py_join_tmp.married,
+                  separated = ADS_Py_join_tmp.separated,
+                  ca_resident = ADS_Py_join_tmp.ca_resident,
+                  ny_resident = ADS_Py_join_tmp.ny_resident,
+                  tx_resident = ADS_Py_join_tmp.tx_resident,
+                  il_resident = ADS_Py_join_tmp.il_resident,
+                  az_resident = ADS_Py_join_tmp.az_resident,
+                  oh_resident = ADS_Py_join_tmp.oh_resident,
+                  acct_type = ADS_Py_join_tmp.acct_type,
+                  starting_balance = ADS_Py_join_tmp.starting_balance,
+                  ending_balance = ADS_Py_join_tmp.ending_balance,
+                  acct_nbr = ADS_Py_join_tmp.acct_acct_nbr,
+                  principal_amt = ADS_Py_join_tmp.principal_amt,
+                  interest_amt = ADS_Py_join_tmp.interest_amt,
+                  tran_id = ADS_Py_join_tmp.tran_id,
+                  tran_date = ADS_Py_join_tmp.tran_date,
+                  q1_trans = case( [(ADS_Py_join_tmp.q1_trans == None, 0)], else_ = ADS_Py_join_tmp.q1_trans ),
+                  q2_trans = case( [(ADS_Py_join_tmp.q2_trans == None, 0)], else_ = ADS_Py_join_tmp.q2_trans ),
+                  q3_trans = case( [(ADS_Py_join_tmp.q2_trans == None, 0)], else_ = ADS_Py_join_tmp.q2_trans ),
+                  q4_trans = case( [(ADS_Py_join_tmp.q2_trans == None, 0)], else_ = ADS_Py_join_tmp.q2_trans ),
+                  ck_acct = case( [(ADS_Py_join_tmp.ck_acct == None, 0)], else_ = ADS_Py_join_tmp.ck_acct ),
+                  sv_acct = case( [(ADS_Py_join_tmp.sv_acct == None, 0)], else_ = ADS_Py_join_tmp.sv_acct ),
+                  cc_acct = case( [(ADS_Py_join_tmp.cc_acct == None, 0)], else_ = ADS_Py_join_tmp.cc_acct ),
+                  ck_bal = case( [(ADS_Py_join_tmp.ck_bal == None, 0)], else_ = ADS_Py_join_tmp.ck_bal ),
+                  sv_bal = case( [(ADS_Py_join_tmp.sv_bal == None, 0)], else_ = ADS_Py_join_tmp.sv_bal ),
+                  cc_bal = case( [(ADS_Py_join_tmp.cc_bal == None, 0)], else_ = ADS_Py_join_tmp.cc_bal ),
+                  ck_tran_amt = case( [(ADS_Py_join_tmp.ck_tran_amt == None, 0)], else_ = ADS_Py_join_tmp.ck_tran_amt ),
+                  sv_tran_amt = case( [(ADS_Py_join_tmp.sv_tran_amt == None, 0)], else_ = ADS_Py_join_tmp.sv_tran_amt ),
+                  cc_tran_amt = case( [(ADS_Py_join_tmp.cc_tran_amt == None, 0)], else_ = ADS_Py_join_tmp.cc_tran_amt )
+                                    )
 ADS_Py_join.to_pandas().head(10)
 
 # As a last step, aggregate and roll up by 'cust_id' all variables in the
@@ -602,6 +422,7 @@ try:
     get_context().execute("DROP TABLE ADS_Py")
 except:
     pass
+
 copy_to_sql(ADS_Py, table_name="ADS_Py", if_exists="replace")
 
 # Create a DataFrame and take a glimpse at it.
@@ -676,48 +497,26 @@ tdADS_SQL.to_pandas().head(10)
 ###
 
 # Split the analytic data set into training and testing data sets (60/40%)
-# Note: A future version of teradataml will feature a Sample API for sampling
-# tasks so that SQL can be avoided.
-ADS_Train_Test = "SELECT cust_id\
-                         ,tot_income\
-                         ,tot_age\
-                         ,tot_cust_years\
-                         ,tot_children\
-                         ,female_ind\
-                         ,single_ind\
-                         ,married_ind\
-                         ,separated_ind\
-                         ,ca_resident_ind\
-                         ,ny_resident_ind\
-                         ,tx_resident_ind\
-                         ,il_resident_ind\
-                         ,az_resident_ind\
-                         ,oh_resident_ind\
-                         ,ck_acct_ind\
-                         ,sv_acct_ind\
-                         ,cc_acct_ind\
-                         ,ck_avg_bal\
-                         ,sv_avg_bal\
-                         ,cc_avg_bal\
-                         ,ck_avg_tran_amt\
-                         ,sv_avg_tran_amt\
-                         ,cc_avg_tran_amt\
-                         ,q1_trans_cnt\
-                         ,q2_trans_cnt\
-                         ,q3_trans_cnt\
-                         ,q4_trans_cnt\
-                         ,SAMPLEID AS sample_id\
-                 FROM ADS_Py SAMPLE .60, .40"
+# with the sample() function.
 
-# Create a DataFrame from_query() and take a glimpse at it
-tdTrain_Test = DataFrame.from_query(ADS_Train_Test)
+ADS_Train_Test = tdADS_Py.sample(frac = [0.60, 0.40])
+
+try:
+    get_context().execute("DROP TABLE ADS_Train_Test")
+except:
+    pass
+
+copy_to_sql(ADS_Train_Test, table_name="ADS_Train_Test", if_exists="replace")
+
+# Create a DataFrame and take a glimpse at it.
+tdTrain_Test = DataFrame("ADS_Train_Test")
 tdTrain_Test.to_pandas().head(10)
 
 # Use the 60% sample to train
-TrainQuery = tdTrain_Test[tdTrain_Test.sample_id == "1"]
+TrainQuery = tdTrain_Test[tdTrain_Test.sampleid == "1"]
 
 # Use the 40% sample to test/score.
-TestQuery = tdTrain_Test[tdTrain_Test.sample_id == "2"]
+TestQuery = tdTrain_Test[tdTrain_Test.sampleid == "2"]
 
 
 ###
@@ -774,6 +573,7 @@ tdXGBoost_Scores.head(100)
 
 # In a different approach, train a Random Forest model to predict the same
 # target, so we can compare and see which algorithm fits the data the best.
+# We implement this approach by means of the Decision Forest functions.
 td_decisionforest_model = DecisionForest(formula = formula,
                                          data = TrainQuery,
                                          tree_type = "classification",
@@ -840,7 +640,7 @@ print(confusion_matrix_DF)
 ###
 
 # Note: Model Administration APIs are not officially supported in teradataml
-#       v.16.20.00.03 and their APIs are not exposed to end user.
+#       v.16.20.00.05 and their APIs are not exposed to end user.
 from teradataml import save_model, list_models, describe_model, delete_model, retrieve_model
 
 # Save the models so that they can be scored again and managed moving forward.

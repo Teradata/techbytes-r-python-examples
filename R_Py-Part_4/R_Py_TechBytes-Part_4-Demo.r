@@ -1,11 +1,11 @@
 ################################################################################
-# * The contents of this file are Teradata Public Content and have been released
-# * to the Public Domain.
-# * Tim Miller & Alexander Kolovos - October 2019 - v.1.0
-# * Copyright (c) 2019 by Teradata
-# * Licensed under BSD; see "license.txt" file in the bundle root folder.
+# The contents of this file are Teradata Public Content and have been released
+# to the Public Domain.
+# Tim Miller & Alexander Kolovos - April 2020 - v.1.1
+# Copyright (c) 2020 by Teradata
+# Licensed under BSD; see "license.txt" file in the bundle root folder.
 #
-# ##############################################################################
+################################################################################
 # R and Python TechBytes Demo - Part 4: R in-nodes with SCRIPT and ExecR
 # ------------------------------------------------------------------------------
 # File: R_Py_TechBytes-Part_4-Demo.r
@@ -16,7 +16,7 @@
 # Part 3 demonstrates the Teradata Python package teradataml for clients
 # Part 4 demonstrates using R in-nodes with the SCRIPT and ExecR Table Operators
 # Part 5 demonstrates using Python in-nodes with the SCRIPT Table Operator
-# ##############################################################################
+################################################################################
 #
 # This TechBytes demo utilizes a use case to predict the propensity of a
 # financial services customer base to open a credit card account.
@@ -55,7 +55,7 @@
 #   (b) Create a gender indicator variable (female_ind) from gender in the
 #       Customer table.
 #   (c) Create marital status indicator variables (single_ind, married_ind,
-#       seperated_ind) from marital_status in the Customer table.
+#       separated_ind) from marital_status in the Customer table.
 #   (d) Recode the state_code variable into, CA, NY, TX, IL, AZ, OH and Other
 #       in Customer table. This replaces the location indicator variables
 #       (ca_resident, ny_resident, tx_resident, il_resident, az_resident,
@@ -72,6 +72,15 @@
 #       q3_nbr_trans, q4_nbr_trans) by taking the count of tran_id's based
 #       upon tran_date in the Transactions table.
 #
+# Note: Code executed successfully on R v.3.6.3 running on RStudio v.1.2.5001,
+#       and by using tdplyr v.16.20.00.06 to connect to a Vantage system that
+#       runs Advanced SQL Engine database v.16.20.40.01.
+################################################################################
+# File Changelog
+#  v.1.0     2019-10-29     First release
+#  v.1.1     2020-04-02     Using the tdplyr td_sample() function for sampling.
+#                           Fix: L.405: as.Date requires format argument.
+#                           Additional information about connections.
 ################################################################################
 
 # Load tdplyr and dependency packages. Will be using them in both use cases.
@@ -105,12 +114,24 @@ con <- td_create_context(host = "<HOSTNAME>", dType="native", uid = "<UID>", pwd
 # to specify a default database <DBNAME>:
 dbExecute(con, "DATABASE <DBNAME>")
 
-# Alternatively: Use an ODBC-based connection by specifying in the following
-# your target Vantage system DSN name <DSN>, and the <UID>, <PWD>, and <DBNAME>
-# variables appropriately. The <DBNAME> variable is optional.
+# Notes and alternatives:
+# 1. In any connection function, you can specify for the argument: pwd=getPass()
+#    After you specify the statement "library(getPass)", the above argument
+#    enables you to type your password secretly during runtime without having
+#    to hard-code it in the script.
+# 2. Use the dbConnect() function (either in tdplyr or DBI packages).
+#    In this approach, you will need to explicitly specify the Teradata R native
+#    driver. This alternative also allows you to connect via an active directory
+#    with LDAP credentials by also specifying the argument: logmech = "LDAP"
+# con <- tdplyr::dbConnect(tdplyr::NativeDriver(), host="<HOSTNAME>", uid="<UID>", pwd="<PWD>")
+# 3. Albeit not recommended, you can still use an ODBC-based connection by
+#    specifying in the following your target Vantage system DSN name <DSN>,
+#    and the <UID>, <PWD>, and <DBNAME> variables appropriately. Specifying the
+#    database dbname=<DBNAME> argument is optional.
 # con <- DBI::dbConnect(odbc(), dsn="<DSN>", uid="<UID>", pwd="<PWD>", dbname="<DBNAME>")
+
 # Set the execution context.
-# td_set_context(con)
+td_set_context(con)
 
 ################################################################################
 ################################################################################
@@ -129,7 +150,8 @@ dbExecute(con, "DATABASE <DBNAME>")
 # Next, we extract a 25% sample from the tdplyr demo analytic data set and
 # read it into a data frame.
 
-tdADSTrain <- dbGetQuery(con, "SELECT * FROM ADS_R SAMPLE .25")
+tdADS_R <- tbl(con, "ADS_R")
+tdADSTrain <- td_sample(df = tdADS_R, n = c(0.25))
 glimpse(tdADSTrain)
 
 # Change the class of the dependent variable to a factor to indicate to
@@ -145,7 +167,7 @@ RFmodel <- randomForest(formula = (cc_acct_ind ~
                                    female_ind +
                                    single_ind +
                                    married_ind +
-                                   seperated_ind +
+                                   separated_ind +
                                    ca_resident_ind +
                                    ny_resident_ind +
                                    tx_resident_ind +
@@ -301,7 +323,7 @@ write(bteqScript, <bteqPATH>)
 #          STOoutPATH = /Users/me/STO_Score.out
 #          STOerrPATH = /Users/me/STO_Score.err
 #          Then, the following statement should be submitted as:
-# system("bteq < /Users/me/TO_Score.bteq > /Users/me/STO_Score.out 2> /Users/me/STO_Score.err", wait=TRUE)
+# system("bteq < /Users/me/STO_Score.bteq > /Users/me/STO_Score.out 2> /Users/me/STO_Score.err", wait=TRUE)
 
 #shell("bteq < bteqPATH > STOoutPATH 2> STOerrPATH", wait=TRUE)
 #system("bteq < bteqPATH > STOoutPATH 2> STOerrPATH", wait=TRUE)
@@ -353,7 +375,7 @@ cust <- tdCustomer %>%
   mutate(female = ifelse(gender == 'F', as.integer(1), as.integer(0)),
          single = ifelse(marital_status == '1', as.integer(1), as.integer(0)),
          married = ifelse(marital_status == '2', as.integer(1), as.integer(0)),
-         seperated = ifelse(marital_status == '3', as.integer(1), as.integer(0)),
+         separated = ifelse(marital_status == '3', as.integer(1), as.integer(0)),
 
 # The creation of the state code indicator variables has been removed and the
 # following was added for a partitioning key for the multi-model use case -
@@ -383,7 +405,7 @@ acct <- tdAccounts %>%
 
 trans <- tdTransactions %>%
   select(acct_nbr, principal_amt, interest_amt, tran_id, tran_date) %>%
-  mutate(acct_mon = month(as.Date(tran_date)),
+  mutate(acct_mon = month(as.Date(tran_date, "yyyy-mm-dd")),
          q1_trans = ifelse(acct_mon %in% c(1,2,3), as.integer(1), as.integer(0)),
          q2_trans = ifelse(acct_mon %in% c(4,5,6), as.integer(1), as.integer(0)),
          q3_trans = ifelse(acct_mon %in% c(7,8,9), as.integer(1), as.integer(0)),
@@ -404,7 +426,7 @@ ADS_R2 <- cust %>%
             female_ind = min(female, na.rm=TRUE),
             single_ind = min(single, na.rm=TRUE),
             married_ind = min(married, na.rm=TRUE),
-            seperated_ind = min(seperated, na.rm=TRUE),
+            separated_ind = min(separated, na.rm=TRUE),
 
 # Adding the statecode to the analytic data set
 
@@ -449,49 +471,20 @@ tdADS_R2 <- tbl(con, "ADS_R2")
 glimpse(tdADS_R2)
 
 # Split the data set up into training and testing data sets (60/40%)
+ADS_Train_Test2 <- td_sample(df = tdADS_R2, n = c(0.60, 0.40))
+copy_to(con, ADS_Train_Test2, name="ADS_Train_Test2", overwrite=TRUE)
 
-ADS_Train_Test2 <- "SELECT cust_id
-                          ,tot_income
-                          ,tot_age
-                          ,tot_cust_years
-                          ,tot_children
-                          ,female_ind
-                          ,single_ind
-                          ,married_ind
-                          ,seperated_ind
-                          ,statecode
-                          ,ck_acct_ind
-                          ,sv_acct_ind
-                          ,cc_acct_ind
-                          ,ck_avg_bal
-                          ,sv_avg_bal
-                          ,cc_avg_bal
-                          ,ck_avg_tran_amt
-                          ,sv_avg_tran_amt
-                          ,cc_avg_tran_amt
-                          ,q1_trans_cnt
-                          ,q2_trans_cnt
-                          ,q3_trans_cnt
-                          ,q4_trans_cnt
-                          ,SAMPLEID AS SAMPLE_ID
-                  FROM ADS_R2 SAMPLE .60, .40"
-
-# DROP the table if it exists, and create it with db_compute() and take a
-# glimpse at it
-
-dbRemoveTable(con, "ADS_Train_Test2")
-db_compute(con, "ADS_Train_Test2", ADS_Train_Test2, temporary=FALSE, table.type = "PI", primary.index = "cust_id")
 tdTrain_Test2 <- tbl(con, "ADS_Train_Test2")
 glimpse(tdTrain_Test2)
 
 # Use the 60% sample to train
 
-MultiModelTrain <- tbl(con, "ADS_Train_Test2") %>% filter(SAMPLE_ID == "1")
+MultiModelTrain <- tdTrain_Test2 %>% filter(sampleid == "1")
 copy_to(con, MultiModelTrain, name="MultiModelTrain", overwrite=TRUE)
 
 # Use the 40% sample to test
 
-MultiModelTest <- tbl(con, "ADS_Train_Test2") %>% filter(SAMPLE_ID == "2")
+MultiModelTest <- tdTrain_Test2 %>% filter(sampleid == "2")
 copy_to(con, MultiModelTest, name="MultiModelTest", overwrite=TRUE)
 
 # Clean-up: Remove the context of present tdplyr connection

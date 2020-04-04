@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------
--- * The contents of this file are Teradata Public Content and have been released
--- * to the Public Domain.
--- * Tim Miller & Alexander Kolovos - October 2019 - v.1.0
--- * Copyright (c) 2019 by Teradata
--- * Licensed under BSD; see "license.txt" file in the bundle root folder.
+-- The contents of this file are Teradata Public Content and have been released
+-- to the Public Domain.
+-- Tim Miller & Alexander Kolovos - April 2020 - v.1.1
+-- Copyright (c) 2020 by Teradata
+-- Licensed under BSD; see "license.txt" file in the bundle root folder.
 --
 --------------------------------------------------------------------------------
 -- R and Python TechBytes Demo - Part 5: Python in-nodes with SCRIPT
@@ -22,7 +22,7 @@
 -- financial services customer base to open a credit card account.
 --
 -- The present file contains the SQL statements to be submitted to the target
--- Vantage system Advanced SQL Engine for two different scenarios in the use 
+-- Vantage system Advanced SQL Engine for two different scenarios in the use
 -- cases 1 and 2 of this demo Part 5. Specifically:
 --
 -- 1) Fitting and scoring a single model
@@ -70,6 +70,10 @@
 --           output is channeled to the file
 --           /var/opt/teradata/tdtemp/uiflib/scriptlog
 --           on each Advanced SQL Engine node of the target Vantage system.
+--------------------------------------------------------------------------------
+-- File Changelog
+--  v.1.0     2019-10-29     First release
+--  v.1.1     2020-04-02     Added change log; no code changes in present file
 --------------------------------------------------------------------------------
 
 

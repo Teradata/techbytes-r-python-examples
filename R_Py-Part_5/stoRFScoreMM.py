@@ -1,11 +1,11 @@
 ################################################################################
-# * The contents of this file are Teradata Public Content and have been released
-# * to the Public Domain.
-# * Tim Miller & Alexander Kolovos - October 2019 - v.1.0
-# * Copyright (c) 2019 by Teradata
-# * Licensed under BSD; see "license.txt" file in the bundle root folder.
+# The contents of this file are Teradata Public Content and have been released
+# to the Public Domain.
+# Tim Miller & Alexander Kolovos - April 2020 - v.1.1
+# Copyright (c) 2020 by Teradata
+# Licensed under BSD; see "license.txt" file in the bundle root folder.
 #
-# ##############################################################################
+################################################################################
 # R and Python TechBytes Demo - Part 5: Python in-nodes with SCRIPT
 # ------------------------------------------------------------------------------
 # File: stoRFScoreMM.py
@@ -16,7 +16,7 @@
 # Part 3 demonstrates the Teradata Python package teradataml for clients
 # Part 4 demonstrates using R in-nodes with the SCRIPT and ExecR Table Operators
 # Part 5 demonstrates using Python in-nodes with the SCRIPT Table Operator
-# ##############################################################################
+################################################################################
 #
 # This TechBytes demo utilizes a use case to predict the propensity of a
 # financial services customer base to open a credit card account.
@@ -44,6 +44,11 @@
 #    subset. The remaining 40% is used to create a testing/scoring dataset.
 #    The train and test/score datasets are used in the SCRIPT operations.
 ################################################################################
+# File Changelog
+#  v.1.0     2019-10-29     First release
+#  v.1.1     2020-04-02     Added change log; no code changes in present file
+################################################################################
+
 import sys
 import numpy as np
 import pandas as pd

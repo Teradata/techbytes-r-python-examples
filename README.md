@@ -1,6 +1,6 @@
 ## TechBytes: Using R and Python with Vantage
 
-This bundle contains v.1.0 of the R and Python code for the 5-part demo of the TechBytes series "Using R and Python with Vantage".
+This bundle contains v.1.1 of the R and Python code for the 5-part demo of the TechBytes series "Using R and Python with Vantage".
 
 ### The TechBytes series "Using R and Python with Vantage"
 
@@ -65,3 +65,10 @@ The present package comprises of the following folders and files. See the README
     + stoRFFitMM.py
     + stoRFScore.py
     + stoRFScoreMM.py
+
+### Changelog
+
+* 2019-10-29: v.1.0: Initial release
+* 2020-04-03: v.1.1: Bug fixes, usage of new functions
+
+For file-specific change logs, please look into the corresponding files. Unmodified files may have no changelog section, and can still follow the versioning in the repository.

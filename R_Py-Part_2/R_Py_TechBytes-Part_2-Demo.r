@@ -1,11 +1,11 @@
-# ##############################################################################
-# * The contents of this file are Teradata Public Content and have been released
-# * to the Public Domain.
-# * Tim Miller & Alexander Kolovos - October 2019 - v.1.0
-# * Copyright (c) 2019 by Teradata
-# * Licensed under BSD; see "license.txt" file in the bundle root folder.
+################################################################################
+# The contents of this file are Teradata Public Content and have been released
+# to the Public Domain.
+# Tim Miller & Alexander Kolovos - April 2020 - v.1.1
+# Copyright (c) 2020 by Teradata
+# Licensed under BSD; see "license.txt" file in the bundle root folder.
 #
-# ##############################################################################
+################################################################################
 # R and Python TechBytes Demo - Part 2: tdplyr
 # ------------------------------------------------------------------------------
 # File: R_Py_TechBytes-Part_2-Demo.r
@@ -16,7 +16,7 @@
 # Part 3 demonstrates the Teradata Python package teradataml for clients
 # Part 4 demonstrates using R in-nodes with the SCRIPT and ExecR Table Operators
 # Part 5 demonstrates using Python in-nodes with the SCRIPT Table Operator
-# ##############################################################################
+################################################################################
 #
 # This TechBytes demo utilizes a use case to predict the propensity of a
 # financial services customer base to open a credit card account.
@@ -31,7 +31,7 @@
 #   b) Create a gender indicator variable (female_ind) from gender in the
 #      Customer table
 #   c) Create marital status indicator variables (single_ind, married_ind,
-#      seperated_ind) from marital_status in the Customer table
+#      separated_ind) from marital_status in the Customer table
 #   d) Create location indicator variables (ca_resident, ny_resident,
 #      tx_resident, il_resident, az_resident, oh_resident) from state_code in
 #      Customer table
@@ -55,10 +55,16 @@
 # - Run confusion matrix on both scored data sets.
 # - Save the models so that they can be scored again in the future.
 #
-# Note: Code executed successfully on R v.3.6.1 running on RStudio v.1.2.5001,
-#       and by using tdplyr v.16.20.00.04 to connect to a Vantage system that
-#       runs Advanced SQL Engine database v.16.20.34.01.
-# ##############################################################################
+# Note: Code executed successfully on R v.3.6.3 running on RStudio v.1.2.5001,
+#       and by using tdplyr v.16.20.00.06 to connect to a Vantage system that
+#       runs Advanced SQL Engine database v.16.20.40.01.
+################################################################################
+# File Changelog
+#  v.1.0     2019-10-29     First release
+#  v.1.1     2020-04-02     Using the tdplyr td_sample() function for sampling.
+#                           Fix: L.181: as.Date requires format argument.
+#                           Additional information about connections.
+################################################################################
 
 # Load tdplyr and dependency packages
 
@@ -74,6 +80,10 @@ library(dbplot)
 
 suppressPackageStartupMessages(LoadPackages())
 
+###
+### Connection
+###
+
 # Establish a connection to Teradata Vantage server with the Teradata R native
 # driver. Before you execute the following statement, replace the variables
 # <HOSTNAME>, <UID>, and <PWD> with the target Vantage system hostname, your
@@ -84,12 +94,24 @@ con <- td_create_context(host = "<HOSTNAME>", dType="native", uid = "<UID>", pwd
 # to specify a default database <DBNAME>:
 dbExecute(con, "DATABASE <DBNAME>")
 
-# Alternatively: Use an ODBC-based connection by specifying in the following
-# your target Vantage system DSN name <DSN>, and the <UID>, <PWD>, and <DBNAME>
-# variables appropriately. The <DBNAME> variable is optional.
+# Notes and alternatives:
+# 1. In any connection function, you can specify for the argument: pwd=getPass()
+#    After you specify the statement "library(getPass)", the above argument
+#    enables you to type your password secretly during runtime without having
+#    to hard-code it in the script.
+# 2. Use the dbConnect() function (either in tdplyr or DBI packages).
+#    In this approach, you will need to explicitly specify the Teradata R native
+#    driver. This alternative also allows you to connect via an active directory
+#    with LDAP credentials by also specifying the argument: logmech = "LDAP"
+# con <- tdplyr::dbConnect(tdplyr::NativeDriver(), host="<HOSTNAME>", uid="<UID>", pwd="<PWD>")
+# 3. Albeit not recommended, you can still use an ODBC-based connection by
+#    specifying in the following your target Vantage system DSN name <DSN>,
+#    and the <UID>, <PWD>, and <DBNAME> variables appropriately. Specifying the
+#    database dbname=<DBNAME> argument is optional.
 # con <- DBI::dbConnect(odbc(), dsn="<DSN>", uid="<UID>", pwd="<PWD>", dbname="<DBNAME>")
+
 # Set the execution context.
-# td_set_context(con)
+td_set_context(con)
 
 ################################################################################
 # Section 1: Data manipulation and transformations
@@ -134,7 +156,7 @@ cust <- tdCustomer %>%
   mutate(female = ifelse(gender == 'F', as.integer(1), as.integer(0)),
          single = ifelse(marital_status == '1', as.integer(1), as.integer(0)),
          married = ifelse(marital_status == '2', as.integer(1), as.integer(0)),
-         seperated = ifelse(marital_status == '3', as.integer(1), as.integer(0)),
+         separated = ifelse(marital_status == '3', as.integer(1), as.integer(0)),
          ca_resident = ifelse(state_code == 'CA', as.integer(1), as.integer(0)),
          ny_resident = ifelse(state_code == 'NY', as.integer(1), as.integer(0)),
          tx_resident = ifelse(state_code == 'TX', as.integer(1), as.integer(0)),
@@ -157,7 +179,7 @@ acct <- tdAccounts %>%
 
 trans <- tdTransactions %>%
   select(acct_nbr, principal_amt, interest_amt, tran_id, tran_date) %>%
-  mutate(acct_mon = month(as.Date(tran_date)),
+  mutate(acct_mon = month(as.Date(tran_date, "yyyy-mm-dd")),
          q1_trans = ifelse(acct_mon %in% c(1,2,3), as.integer(1), as.integer(0)),
          q2_trans = ifelse(acct_mon %in% c(4,5,6), as.integer(1), as.integer(0)),
          q3_trans = ifelse(acct_mon %in% c(7,8,9), as.integer(1), as.integer(0)),
@@ -178,7 +200,7 @@ ADS_R <- cust %>%
             female_ind = min(female, na.rm=TRUE),
             single_ind = min(single, na.rm=TRUE),
             married_ind = min(married, na.rm=TRUE),
-            seperated_ind = min(seperated, na.rm=TRUE),
+            separated_ind = min(separated, na.rm=TRUE),
             ca_resident_ind = min(ca_resident, na.rm=TRUE),
             ny_resident_ind = min(ny_resident, na.rm=TRUE),
             tx_resident_ind = min(tx_resident, na.rm=TRUE),
@@ -243,52 +265,19 @@ glimpse(tdADS_R)
 ###
 
 # Split the data set up into training and testing data sets (60/40%)
+ADS_Train_Test <- td_sample(df = tdADS_R, n = c(0.60, 0.40))
+copy_to(con, ADS_Train_Test, name="ADS_Train_Test", overwrite=TRUE)
 
-ADS_Train_Test <- "SELECT cust_id
-                         ,tot_income
-                         ,tot_age
-                         ,tot_cust_years
-                         ,tot_children
-                         ,female_ind
-                         ,single_ind
-                         ,married_ind
-                         ,seperated_ind
-                         ,ca_resident_ind
-                         ,ny_resident_ind
-                         ,tx_resident_ind
-                         ,il_resident_ind
-                         ,az_resident_ind
-                         ,oh_resident_ind
-                         ,ck_acct_ind
-                         ,sv_acct_ind
-                         ,cc_acct_ind
-                         ,ck_avg_bal
-                         ,sv_avg_bal
-                         ,cc_avg_bal
-                         ,ck_avg_tran_amt
-                         ,sv_avg_tran_amt
-                         ,cc_avg_tran_amt
-                         ,q1_trans_cnt
-                         ,q2_trans_cnt
-                         ,q3_trans_cnt
-                         ,q4_trans_cnt
-                         ,SAMPLEID AS SAMPLE_ID
-                 FROM ADS_R SAMPLE .60, .40"
-
-# DROP the table if it exists, create it with db_compute() and glimpse at it.
-
-dbRemoveTable(con, "ADS_Train_Test")
-db_compute(con, "ADS_Train_Test", ADS_Train_Test, temporary=FALSE, table.type = "PI", primary.index = "cust_id")
 tdTrain_Test <- tbl(con, "ADS_Train_Test")
 glimpse(tdTrain_Test)
 
 # Use the 60% sample to train.
 
-TrainQuery <- tbl(con, "ADS_Train_Test") %>% filter(SAMPLE_ID == "1")
+TrainQuery <- tdTrain_Test %>% filter(sampleid == "1")
 
 # Use the 40% sample to test/score.
 
-TestQuery <- tbl(con, "ADS_Train_Test") %>% filter(SAMPLE_ID == "2")
+TestQuery <- tdTrain_Test %>% filter(sampleid == "2")
 
 ###
 ### Model training and scoring using XGBoost
@@ -307,7 +296,7 @@ td_xgboost_model <- td_xgboost(data=TrainQuery,
                                           female_ind +
                                           single_ind +
                                           married_ind +
-                                          seperated_ind +
+                                          separated_ind +
                                           ca_resident_ind +
                                           ny_resident_ind +
                                           tx_resident_ind +
@@ -367,7 +356,7 @@ td_decisionforest_model <- td_decision_forest(
                                       female_ind +
                                       single_ind +
                                       married_ind +
-                                      seperated_ind +
+                                      separated_ind +
                                       ca_resident_ind +
                                       ny_resident_ind +
                                       tx_resident_ind +
@@ -426,7 +415,7 @@ td_decisionforest_predict <- predict(td_decisionforest_model,
 
 copy_to(con, td_decisionforest_predict$result, overwrite = TRUE, name = "RandomForest_Scores")
 tdRandomForest_Scores <- tbl(con, "RandomForest_Scores")
-print(tdRandomForest_Scores, n=100)
+print(tdRandomForest_Scores, n=10)
 
 ###
 ### Using Confusion Matrix to look at the 2 models
@@ -455,7 +444,7 @@ confusion_matrix_DF
 # Save the models so that they can be scored again and managed moving forward.
 
 # Note: Model Administration APIs are not officially supported in tdplyr
-#       v.16.20.00.04 and their APIs are not exposed to end user.
+#       v.16.20.00.06 and their APIs are not exposed to end user.
 
 td_save_model(td_xgboost_model, name="XGBoost_Model_1")
 td_save_model(td_decisionforest_model, name="Decision_Forest_Model_1")
@@ -475,6 +464,7 @@ td_delete_model(name="Decision_Forest_Model_1")
 
 xgboost_model <- td_retrieve_model(name = "XGBoost_Model_1")
 xgboost_model
+# The following should produce an error, since model has been deleted.
 decision_forest_model <- td_retrieve_model(name="Decision_Forest_Model_1")
 
 # Clean-up: Remove the context of present tdplyr connection

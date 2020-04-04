@@ -3,7 +3,7 @@ The R and Python TechBytes Demo
 --------------------------------------------------------------------------------
 README-R_Py_TechBytes-Part_5:
 README file for Part 5 of the R and Python TechBytes Demo
-Copyright (c) 2019 by Teradata
+Copyright (c) 2020 by Teradata
 Licensed under BSD; see "license.txt" file in the bundle root folder.
 ================================================================================
 

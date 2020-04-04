@@ -1,9 +1,9 @@
 --------------------------------------------------------------------------------
--- * The contents of this file are Teradata Public Content and have been released
--- * to the Public Domain.
--- * Tim Miller & Alexander Kolovos - October 2019 - v.1.0
--- * Copyright (c) 2019 by Teradata
--- * Licensed under BSD; see "license.txt" file in the bundle root folder.
+-- The contents of this file are Teradata Public Content and have been released
+-- to the Public Domain.
+-- Tim Miller & Alexander Kolovos - April 2020 - v.1.1
+-- Copyright (c) 2020 by Teradata
+-- Licensed under BSD; see "license.txt" file in the bundle root folder.
 --
 --------------------------------------------------------------------------------
 -- R and Python TechBytes Demo - Part 0: Analysis with SQL
@@ -58,7 +58,11 @@
 -- - Save the models so that they can be scored again in the future.
 --
 -- Note: Code executed successfully on a Vantage system that runs Advanced SQL
---       Engine database v.16.20.34.01.
+--       Engine database v.16.20.40.01.
+--------------------------------------------------------------------------------
+-- File Changelog
+--  v.1.0     2019-10-29     First release
+--  v.1.1     2020-04-02     Added change log; no code changes in present file
 --------------------------------------------------------------------------------
 
 -- Establish a connection to Teradata Vantage server. Before you execute the
