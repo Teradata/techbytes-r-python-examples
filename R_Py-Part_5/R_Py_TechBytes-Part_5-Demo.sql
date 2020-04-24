@@ -74,6 +74,7 @@
 -- File Changelog
 --  v.1.0     2019-10-29     First release
 --  v.1.1     2020-04-02     Added change log; no code changes in present file
+--  v.1.1.1   2020-04-24     Bug fix: Column "sampleid" confused with keyword
 --------------------------------------------------------------------------------
 
 
@@ -179,6 +180,8 @@ DROP TABLE RFStateCodeModelsPy;
 --
 -- Before you execute the following statement, replace <DBNAME> with the
 -- database name you specified in the beginning of Use Case [2] earlier.
+-- In the following statement, the "sampleid" column of the input table is
+-- enclosed in quotes to differentiate the name from the SQL keyword sampleid.
 CREATE TABLE RFStateCodeModelsPy AS (
     SELECT d.oc1 AS statecode,
            d.oc2 AS rf_model
@@ -189,7 +192,7 @@ CREATE TABLE RFStateCodeModelsPy AS (
                              ck_acct_ind, sv_acct_ind, cc_acct_ind, ck_avg_bal,
                              sv_avg_bal, cc_avg_bal, ck_avg_tran_amt, sv_avg_tran_amt,
                              cc_avg_tran_amt, q1_trans_cnt, q2_trans_cnt,
-                             q3_trans_cnt, q4_trans_cnt, SAMPLE_ID
+                             q3_trans_cnt, q4_trans_cnt, "sampleid"
                       FROM MultiModelTrain_Py)
                   PARTITION BY scode
                   SCRIPT_COMMAND('python3 ./<DBNAME>/stoRFFitMM.py')
@@ -229,6 +232,8 @@ call SYSUIF.install_file('stoRFScoreMM','stoRFScoreMM.py','cz!mmscoscrPATH');
 --
 -- Before you execute the following statement, replace <DBNAME> with the
 -- database name you specified in the beginning of Use Case [2] earlier.
+-- In the following statement, the "sampleid" column of the nested input table
+-- is enclosed in quotes to differentiate the name from the SQL keyword sampleid.
 SELECT d.oc1 AS cust_id,
        d.oc2 AS statecode,
        d.oc3 AS Prob0,
@@ -243,7 +248,7 @@ FROM SCRIPT( ON(SELECT s.*,
                              x.ck_acct_ind, x.sv_acct_ind, x.cc_acct_ind, x.ck_avg_bal,
                              x.sv_avg_bal, x.cc_avg_bal, x.ck_avg_tran_amt, x.sv_avg_tran_amt,
                              x.cc_avg_tran_amt, x.q1_trans_cnt, x.q2_trans_cnt,
-                             x.q3_trans_cnt, x.q4_trans_cnt, x.SAMPLE_ID,
+                             x.q3_trans_cnt, x.q4_trans_cnt, x."sampleid",
                              row_number() OVER (PARTITION BY x.cust_id ORDER BY x.cust_id) AS nRow
                       FROM MultiModelTest_Py x) AS s, RFStateCodeModelsPy m
                 WHERE s.scode = m.statecode)

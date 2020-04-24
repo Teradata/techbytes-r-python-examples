@@ -90,6 +90,7 @@
 #  v.1.0     2019-10-29     First release
 #  v.1.1     2020-04-02     Code simplified with case, sample teradataml funcs.
 #                           Additional information about connections.
+#  v.1.1.1   2020-04-24     Bug fix: Missing colon in when stmt, and blank line.
 # ##############################################################################
 
 # Load teradataml and dependency packages to use in both use cases.
@@ -560,6 +561,7 @@ try:
     get_context().execute("DROP TABLE <DBNAME>.MultiModelTest_Py")
 except:
     pass
+
 copy_to_sql(MultiModelTest_Py, schema_name="<DBNAME>", table_name="MultiModelTest_Py", if_exists = "replace")
 
 ###
