@@ -219,7 +219,7 @@ classifier = classifier.fit(X, y)
 #       https://docs.python.org/3/library/pickle.html#pickling-class-instances
 classifierPkl = pickle.dumps(classifier)
 classifierPklB64 = base64.b64encode(classifierPkl)
-with open('RFmodel_py.out', 'wb') as fOut   # Use "wb" to write in binary format
+with open('RFmodel_py.out', 'wb') as fOut:  # Use "wb" to write in binary format
     fOut.write(classifierPklB64)
 
 # The saved model will then need to be installed on the target Vantage system
