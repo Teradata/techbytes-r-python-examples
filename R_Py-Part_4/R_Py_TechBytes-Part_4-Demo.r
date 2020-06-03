@@ -81,6 +81,8 @@
 #  v.1.1     2020-04-02     Using the tdplyr td_sample() function for sampling.
 #                           Fix: L.405: as.Date requires format argument.
 #                           Additional information about connections.
+#  v.1.1.1   2020-06-03     Convert tibble to data frame for usage with R funcs
+#                           that expect data frame input.
 ################################################################################
 
 # Load tdplyr and dependency packages. Will be using them in both use cases.
@@ -151,7 +153,11 @@ td_set_context(con)
 # read it into a data frame.
 
 tdADS_R <- tbl(con, "ADS_R")
-tdADSTrain <- td_sample(df = tdADS_R, n = c(0.25))
+tdADSTrainTbl <- td_sample(df = tdADS_R, n = c(0.25))
+
+# To use the tibble with the randomForest() function, convert it to a data frame
+# to ensure compatibility with the expected input variable types.
+tdADSTrain <- as.data.frame(tdADSTrainTbl)
 glimpse(tdADSTrain)
 
 # Change the class of the dependent variable to a factor to indicate to
